@@ -1,0 +1,16 @@
+{
+    "require": {
+        "php-di/php-di": "^5.4",
+        "symfony/console": "^3.3",
+        "ideationnet/stack-runner": "^3.0",
+        "ideationnet/invoker-router-middleware": "^0.1.0",
+        "vlucas/phpdotenv": "^2.4",
+        "league/csv": "^9.1",
+        "guzzlehttp/guzzle": "^6.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "SchoolData\\": "src"
+        }
+    }
+}
