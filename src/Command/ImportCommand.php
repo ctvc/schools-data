@@ -1,16 +1,14 @@
 <?php
 
-
 namespace SchoolData\Command;
-
 
 use GuzzleHttp\Client;
 use Interop\Container\ContainerInterface;
 use League\Csv\Reader;
-use League\Csv\Statement;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ImportCommand extends Command
@@ -44,6 +42,12 @@ class ImportCommand extends Command
     {
         $records = $this->csv->getRecords();
 
+        $type = getenv('DATA_FILE_TYPE');
+
+        if (!in_array($type, ['uk', 'scot', 'ie'])) {
+            throw new \Exception("Invalid data type must be uk, scot, or ie.");
+        }
+
         $progress = new ProgressBar($output, $this->csv->count());
         $progress->start();
 
@@ -63,19 +67,55 @@ class ImportCommand extends Command
 //                $data[$field][$record[$field]] = true;
 //            }
 
-            try {
-                $this->client->post('/schools/school', [
-                  'json' => [
-                    'urn' => $record['URN'],
-                    'name' => utf8_encode($record['EstablishmentName']),
-                    'la_name' => $record['LA (name)'],
-                  ]
-                ]);
+            $id = FALSE;
+
+            switch ($type) {
+                case 'scot':
+                    if ($record['SeedCode']) {
+                        $id = 'seed--' . $record['SeedCode'];
+                        $esData = [
+                            'name' => trim($record['School Name']),
+                            'la_name' => trim($record['LA Name']),
+                        ];
+                    }
+                    break;
+
+                case 'ie':
+                    if ($record['Roll Number']) {
+                        $id = 'roll--' . $record['Roll Number'];
+                        $esData = [
+                            'name' => trim($record['Official Name']),
+                            'la_name' => trim($record['Local Authority Description']),
+                        ];
+                    }
+                    break;
+
+                case 'uk':
+                    if ($record['URN']) {
+                        $id = 'urn--' . $record['URN'];
+                        $esData = [
+                            'urn' => $record['URN'] ?? '',
+                            'name' => utf8_encode($record['EstablishmentName']),
+                            'la_name' => $record['LA (name)'],
+                        ];
+                    }
+                    break;
+
+                default:
             }
-            catch (\InvalidArgumentException $exception) {
-                var_dump($record);
-                throw $exception;
+
+            if ($id !== FALSE) {
+                try {
+                    $this->client->post('/schools/school/'.$id, [
+                        'json' => $esData
+                    ]);
+                }
+                catch (\InvalidArgumentException $exception) {
+                    var_dump($record);
+                    throw $exception;
+                }
             }
+
 
             $progress->advance();
         }
