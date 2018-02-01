@@ -44,8 +44,8 @@ class ImportCommand extends Command
 
         $type = getenv('DATA_FILE_TYPE');
 
-        if (!in_array($type, ['uk', 'scot', 'ie'])) {
-            throw new \Exception("Invalid data type must be uk, scot, or ie.");
+        if (!in_array($type, ['uk', 'scot', 'ie', 'ni'])) {
+            throw new \Exception("Invalid data type must be uk, scot, ni, or ie.");
         }
 
         $progress = new ProgressBar($output, $this->csv->count());
@@ -76,6 +76,16 @@ class ImportCommand extends Command
                         $esData = [
                             'name' => trim($record['School Name']),
                             'la_name' => trim($record['LA Name']),
+                        ];
+                    }
+                    break;
+
+                case 'ni':
+                    if ($record['Reference']) {
+                        $id = 'ref--' . $record['Reference'];
+                        $esData = [
+                            'name' => trim($record['Institution_Name']),
+                            'la_name' => trim($record['County_Name']),
                         ];
                     }
                     break;
